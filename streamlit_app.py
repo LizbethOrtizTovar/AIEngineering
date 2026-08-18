@@ -1,36 +1,42 @@
 # streamlit_app.py
 import streamlit as st
-from openai import OpenAI
+import requests
 from app.config import settings
-from app.context.examples import format_examples, CANONICAL_EXAMPLES
-from app.services.llm_service import build_system_prompt
-import time
+from app.context.examples import CANONICAL_EXAMPLES
+from app.prompts.loader import render_estimation_prompt
+from app.schemas.estimation import (
+    EstimationRequest, ProjectType, DetailLevel, OutputFormat
+)
 
-# ── Configuración de la página ────────────────────────────────────────────────
+# ── Configuración ─────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Estimador CAG",
     page_icon="🧮",
     layout="wide"
 )
 
-# ── Cliente OpenAI ────────────────────────────────────────────────────────────
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
-# ── Session state — historial y métricas ─────────────────────────────────────
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# ── Session state ─────────────────────────────────────────────────────────────
+if "results" not in st.session_state:
+    st.session_state.results = []
 
 if "last_metrics" not in st.session_state:
     st.session_state.last_metrics = None
 
-# ── NIVEL 3: Sidebar ──────────────────────────────────────────────────────────
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.title("⚙️ Panel CAG")
 
     with st.expander("📋 System prompt activo", expanded=False):
-        st.code(build_system_prompt(), language="markdown")
+        sample = EstimationRequest(
+    transcription="Ejemplo de transcripción para mostrar el system prompt activo.",
+            project_type=ProjectType.WEB_SAAS,
+            detail_level=DetailLevel.MEDIUM,
+            output_format=OutputFormat.PHASES_TABLE,
+        )
+        system, _ = render_estimation_prompt(sample)
+        st.code(system, language="markdown")
 
-    with st.expander("📚 Ejemplos de contexto inyectados", expanded=False):
+    with st.expander("📚 Ejemplos de contexto", expanded=False):
         for i, ex in enumerate(CANONICAL_EXAMPLES, 1):
             st.markdown(f"**Ejemplo {i}**")
             st.caption(ex["meeting_summary"])
@@ -42,96 +48,105 @@ with st.sidebar:
         st.metric("Modelo", m["model"])
         st.metric("Tokens entrada", m["prompt_tokens"])
         st.metric("Tokens salida", m["completion_tokens"])
-        st.metric("Tiempo de respuesta", f"{m['latency_ms']} ms")
+        st.metric("Latencia", f"{m['latency_ms']} ms")
+        st.metric("Cache hit", "✅ Sí" if m["cache_hit"] else "❌ No")
+        st.metric("Prompt version", m["prompt_version"])
     else:
         st.caption("Aún no hay llamadas realizadas.")
 
-    if st.button("🗑️ Limpiar conversación"):
-        st.session_state.messages = []
+    if st.button("🗑️ Limpiar resultados"):
+        st.session_state.results = []
         st.session_state.last_metrics = None
         st.rerun()
 
-# ── Título principal ──────────────────────────────────────────────────────────
+# ── Título ────────────────────────────────────────────────────────────────────
 st.title("🧮 Estimador de Software CAG")
-st.caption("Pega una transcripción de reunión y obtén una estimación detallada.")
+st.caption("Completa el formulario para obtener una estimación detallada.")
 
-# ── Mostrar historial de mensajes ─────────────────────────────────────────────
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# ── Formulario tipado ─────────────────────────────────────────────────────────
+with st.form("estimation_form"):
+    transcription = st.text_area(
+        "📝 Transcripción de la reunión",
+        height=200,
+        placeholder="Describe el proyecto o pega la transcripción de la reunión con el cliente...",
+    )
 
-# ── Input del usuario ─────────────────────────────────────────────────────────
-if prompt := st.chat_input("Pega aquí la transcripción de la reunión..."):
+    col1, col2, col3 = st.columns(3)
 
-    # Añadir mensaje del usuario al historial y mostrarlo
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # ── NIVEL 2: Streaming ────────────────────────────────────────────────────
-    with st.chat_message("assistant"):
-        system_prompt = f"""Eres un estimador experto en proyectos de software con 15 años de experiencia.
-
-Tu tarea es analizar la transcripción de una reunión con un cliente y generar una estimación
-detallada del esfuerzo de desarrollo en formato markdown.
-
-REGLAS DE PRICING:
-- Tarifa estándar: 50 €/h
-- Tarifa senior: 62,50 €/h
-- Jornada: 8 horas/día
-
-Responde SIEMPRE en markdown con este formato:
-## Estimación: [nombre del proyecto]
-
-### Desglose de tareas:
-1. Tarea 1: X horas
-2. Tarea 2: X horas
-
-**Total estimado: X horas**
-**Coste estimado: X € (tarifa 50 €/h)**
-**Equipo recomendado: ...**
-**Duración estimada: X semanas**
-
-### Riesgos identificados:
-- Riesgo 1
-- Riesgo 2
-
-EJEMPLOS DE REFERENCIA:
-{format_examples()}
-"""
-
-        start = time.time()
-
-        # Sin json_object para que devuelva markdown limpio
-        stream = client.chat.completions.create(
-            model=settings.MODEL_NAME,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                *[{"role": m["role"], "content": m["content"]}
-                  for m in st.session_state.messages]
-            ],
-            stream=True,
-            temperature=0.2,
+    with col1:
+        project_type = st.selectbox(
+            "Tipo de proyecto",
+            options=[e.value for e in ProjectType],
+            format_func=lambda x: {
+                "mobile_app":    "📱 App móvil",
+                "web_saas":      "🌐 Web / SaaS",
+                "internal_tool": "🔧 Herramienta interna",
+                "data_pipeline": "📊 Pipeline de datos",
+            }.get(x, x)
         )
 
-        response_text = st.write_stream(stream)
-        latency_ms = round((time.time() - start) * 1000, 2)
+    with col2:
+        detail_level = st.selectbox(
+            "Nivel de detalle",
+            options=[e.value for e in DetailLevel],
+            format_func=lambda x: {
+                "summary":  "📋 Resumen ejecutivo",
+                "medium":   "📄 Estándar",
+                "detailed": "🔍 Detallado",
+            }.get(x, x)
+        )
 
+    with col3:
+        output_format = st.selectbox(
+            "Formato de salida",
+            options=[e.value for e in OutputFormat],
+            format_func=lambda x: {
+                "phases_table": "📅 Fases con tabla",
+                "line_items":   "📋 Líneas de trabajo",
+                "narrative":    "📖 Narrativa",
+            }.get(x, x)
+        )
 
-    # Guardar respuesta en historial
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": response_text
-    })
+    submitted = st.form_submit_button("🚀 Generar estimación", type="primary")
 
-    # Guardar métricas (aproximadas en streaming)
-    prompt_tokens = len(system_prompt.split()) + len(prompt.split())
-    completion_tokens = len(response_text.split())
-    st.session_state.last_metrics = {
-        "model":             settings.MODEL_NAME,
-        "prompt_tokens":     prompt_tokens,
-        "completion_tokens": completion_tokens,
-        "latency_ms":        latency_ms,
-    }
+# ── Llamada a la API ──────────────────────────────────────────────────────────
+if submitted:
+    if not transcription or len(transcription) < 20:
+        st.error("La transcripción debe tener al menos 20 caracteres.")
+    else:
+        with st.spinner("Generando estimación..."):
+            try:
+                response = requests.post(
+                    "http://localhost:8000/api/v1/estimate",
+                    json={
+                        "transcription": transcription,
+                        "project_type":  project_type,
+                        "detail_level":  detail_level,
+                        "output_format": output_format,
+                    }
+                )
+                response.raise_for_status()
+                data = response.json()
 
-    st.rerun()
+                st.session_state.results.append(data)
+                st.session_state.last_metrics = {
+                    "model":          data["model"],
+                    "prompt_tokens":  data["usage"]["prompt_tokens"],
+                    "completion_tokens": data["usage"]["completion_tokens"],
+                    "latency_ms":     data["latency_ms"],
+                    "cache_hit":      data["cache_hit"],
+                    "prompt_version": data["prompt_version"],
+                }
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Error al llamar a la API: {str(e)}")
+
+# ── Mostrar resultados ────────────────────────────────────────────────────────
+for i, result in enumerate(reversed(st.session_state.results), 1):
+    with st.expander(f"Estimación #{len(st.session_state.results) - i + 1}", expanded=(i == 1)):
+        st.markdown(result["estimation"])
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Modelo", result["model"])
+        col2.metric("Latencia", f"{result['latency_ms']} ms")
+        col3.metric("Cache", "✅" if result["cache_hit"] else "❌")

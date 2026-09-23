@@ -1,6 +1,92 @@
 # streamlit_app.py
 import streamlit as st
 import requests
+
+
+# ── Conversión de divisas en tiempo real ──────────────────────────────────────
+@st.cache_data(ttl=3600)  # cachea el tipo de cambio 1 hora
+def get_exchange_rates() -> dict:
+    """Obtiene tipos de cambio en tiempo real desde frankfurter.app (gratuito, sin API key)."""
+    try:
+        resp = requests.get(
+            "https://api.frankfurter.app/latest",
+            params={"from": "EUR", "to": "USD,MXN"},
+            timeout=5
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return {
+            "USD": data["rates"]["USD"],
+            "MXN": data["rates"]["MXN"],
+            "date": data["date"],
+            "source": "frankfurter.app"
+        }
+    except Exception:
+        # Fallback a tipos fijos si la API falla
+        return {
+            "USD": 1.08,
+            "MXN": 19.80,
+            "date": "fallback",
+            "source": "tipo fijo (API no disponible)"
+        }
+
+
+def extract_eur_amount(estimation_text: str) -> float | None:
+    """Extrae el coste TOTAL en EUR del texto de estimación."""
+    import re
+
+    # Primero busca el coste total (tiene prioridad)
+    total_patterns = [
+        r'[Cc]oste\s+total\s+estimado[:\s\*]+[\*]?([\d\.]+(?:[\.,]\d{3})*)\s*[€]',
+        r'[Tt]otal\s+estimado[:\s\*]+[\*]?([\d\.]+(?:[\.,]\d{3})*)\s*[€]',
+        r'[Cc]oste\s+total[:\s\*]+[\*]?([\d\.]+(?:[\.,]\d{3})*)\s*[€]',
+    ]
+
+    for pattern in total_patterns:
+        match = re.search(pattern, estimation_text)
+        if match:
+            raw = match.group(1).replace(".", "").replace(",", ".")
+            try:
+                return float(raw)
+            except ValueError:
+                continue
+
+    # Si no encuentra total, busca el valor más alto en EUR
+    all_amounts = re.findall(r'([\d]+(?:[\.]\d{3})*)\s*€', estimation_text)
+    if all_amounts:
+        values = []
+        for a in all_amounts:
+            try:
+                values.append(float(a.replace(".", "")))
+            except ValueError:
+                continue
+        if values:
+            return max(values)
+
+    return None
+
+
+def show_currency_conversion(estimation_text: str):
+    """Muestra el coste estimado convertido a EUR, USD y MXN."""
+    rates = get_exchange_rates()
+    eur_amount = extract_eur_amount(estimation_text)
+
+    if eur_amount is None:
+        return
+
+    usd_amount = eur_amount * rates["USD"]
+    mxn_amount = eur_amount * rates["MXN"]
+
+    st.divider()
+    st.subheader("💱 Coste estimado en otras divisas")
+    st.caption(f"Tipo de cambio del {rates['date']} · Fuente: {rates['source']}")
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("🇪🇺 EUR", f"€ {eur_amount:,.0f}")
+    col2.metric("🇺🇸 USD", f"$ {usd_amount:,.0f}")
+    col3.metric("🇲🇽 MXN", f"$ {mxn_amount:,.0f}")
+
+
 from app.config import settings
 from app.context.examples import CANONICAL_EXAMPLES
 from app.prompts.loader import render_estimation_prompt
@@ -177,3 +263,4 @@ if submitted:
 for turn_data in reversed(st.session_state.results):
     with st.expander(f"Turno #{turn_data['turn']}: {turn_data['transcription'][:60]}...", expanded=(turn_data['turn'] == len(st.session_state.results))):
         st.markdown(turn_data["estimation"])
+        show_currency_conversion(turn_data["estimation"])  # ← añade esta línea

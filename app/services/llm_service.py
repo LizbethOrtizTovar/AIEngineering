@@ -103,6 +103,27 @@ def call_llm_conversational(request: EstimationRequest, session, attachments_blo
     if attachments_block:
         user_prompt = f"{user_prompt}\n\n<attachments>\n{attachments_block}\n</attachments>"
 
+
+        # ── Evento turn_observed agregado ─────────────────────────────────────
+        logger.info(
+            "turn_observed",
+            turn_index=session.history.turn_count + 1,
+            session_id=session.session_id,
+            enriched_transcript_chars=len(user_prompt),
+            attachments_total_chars=len(attachments_block) if attachments_block else 0,
+            messages_in_window=len(messages),
+            tokens_in=response.usage.prompt_tokens,
+            tokens_out=response.usage.completion_tokens,
+            cost_usd=round(
+                (response.usage.prompt_tokens * 0.00000015) +
+                (response.usage.completion_tokens * 0.0000006), 6
+            ),
+            latency_ms=latency_ms,
+            cache_hit_kind="none",
+            model=response.model,
+            provider=settings.LLM_PROVIDER,
+        )
+
     # Construir messages con historial
     messages = session.history.to_messages(system_prompt)
     messages.append({"role": "user", "content": user_prompt})

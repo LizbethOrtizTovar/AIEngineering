@@ -138,6 +138,57 @@ GET /api/v1/sessions/{id} → estado actual de la sesión
 - Camino B para adjuntos (extracción local) sobre Camino A (multimodal directo) — independencia de proveedor y preparación para RAG
 
 ---
+### ✅ Sesión 06 — Stress test CAG + Divisas en tiempo real
+**Qué construimos:** Medición cuantitativa de los límites del CAG y conversión de divisas.
+
+**Archivos clave:**
+- `streamlit_app.py` — conversión EUR/USD/MXN en tiempo real (frankfurter.app, caché 1h, fallback fijo)
+- `app/services/llm_service.py` — evento `turn_observed` con 13 campos structlog
+- `evals/stress/scenarios.py` — 3 escenarios: growing, pivot, contradiction
+- `evals/stress/metrics.py` — LatencyBudgetMetric, CostBudgetMetric, MemoryDriftMetric (10/10 tests)
+- `evals/stress/run.py` — runner que genera results.csv
+- `evals/stress/REPORT.md` — análisis completo con 3 curvas
+
+**Hallazgos del stress test:**
+- Latencia P50: 8,658ms — supera SLA de 4,000ms ❌
+- Coste por turno: ~$0.0004-0.001 ✅
+- Memory drift: 10/16 (62.5%) — degrada en turno 6 ⚠️
+- Conclusión: justifica transición a RAG en módulo 3
+
+**Lo que aprendimos:**
+- El CAG rompe en latencia desde el turno 1 — limitación estructural del LLM
+- La memoria heurística falla con hechos numéricos (presupuestos)
+- La ventana deslizante de 6 turnos es el límite natural del CAG
+
+---
+
+### ✅ Sesión 07 — Embeddings y Chunking (pre-ejercicio)
+**Qué construimos:** Pipeline de embeddings para preparar el terreno para RAG.
+
+**Archivos clave:**
+- `app/embedding_pipeline/schemas.py` — Budget, BudgetComponent, EmbeddedChunk, IngestRequest/Response
+- `app/embedding_pipeline/chunker.py` — JSONStructuralChunker con headers contextuales
+- `app/embedding_pipeline/embedder.py` — batch de 100, reintentos 1/2/4s, log por batch
+- `app/embedding_pipeline/router.py` — POST /embeddings/ingest
+- `scripts/compare.py` — sanity check con similitud coseno
+- `data/budgets_sample.json` — 15 presupuestos sintéticos, 56 componentes
+- `app/embedding_pipeline/SANITY_CHECK.md` — resultados documentados
+
+**Resultados del sanity check:**
+| Pareja | Coseno | Esperado |
+|--------|--------|----------|
+| Textos cercanos (OAuth + autenticación) | 0.5958 | >0.6 |
+| Textos no relacionados | 0.1920 | <0.4 |
+| Textos genéricos | 0.5408 | — |
+
+**Lo que aprendimos:**
+- Embeddings = texto → vector de 1536 números (text-embedding-3-small)
+- Textos similares → vectores similares (coseno alto)
+- Chunking: 1 componente de presupuesto = 1 chunk con header contextual
+- El orden de similitud es correcto — separación de 0.40 entre cercanos y no relacionados
+- Textos vagos inflan la similitud (riesgo con briefs poco detallados)
+
+**Decisión técnica:** text-embedding-3-small, 1536d, $0.02/1M tokens
 
 ## Estructura del proyecto
 

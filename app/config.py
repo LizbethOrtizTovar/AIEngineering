@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "openai"
     MODEL_NAME: str = "gpt-4o-mini"
     REDIS_URL: str = "redis://localhost:6379"
+    POSTGRES_URL: str = "postgresql://estimador:estimador123@localhost:5432/estimador_db"
     LOG_LEVEL: str = "INFO"
     ENV: str = "development"
 

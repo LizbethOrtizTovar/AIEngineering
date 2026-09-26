@@ -1,0 +1,939 @@
+[
+  {
+    "budget_id": "BUD-2023-003",
+    "client_metadata": {
+      "name": "NeoBanca",
+      "sector": "finance",
+      "country": "ES"
+    },
+    "project_summary": "Mobile banking API with OAuth 2.0 authentication and PSD2 compliance",
+    "main_technology": "ruby_on_rails",
+    "year": 2023,
+    "total_estimated_hours": 448,
+    "components": [
+      {
+        "component_id": "AUTH-001",
+        "name": "OAuth 2.0 authentication backend",
+        "description": "Implementation of OAuth 2.0 flows (authorization code with PKCE, refresh token) with JWT-based session management, multi-tenant token isolation and rate limiting per client.",
+        "tech_stack": [
+          "ruby_on_rails",
+          "postgresql",
+          "redis"
+        ],
+        "estimated_hours": 120,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "PSD2-002",
+        "name": "PSD2 open banking gateway",
+        "description": "Account information and payment initiation endpoints following the Berlin Group NextGenPSD2 standard, including eIDAS certificate validation and strong customer authentication.",
+        "tech_stack": [
+          "ruby_on_rails",
+          "postgresql"
+        ],
+        "estimated_hours": 160,
+        "complexity": "high",
+        "dependencies": [
+          "AUTH-001"
+        ]
+      },
+      {
+        "component_id": "ACC-003",
+        "name": "Accounts and transactions API",
+        "description": "REST endpoints to list accounts, balances and paginated transaction history with filtering by date range and category.",
+        "tech_stack": [
+          "ruby_on_rails",
+          "postgresql"
+        ],
+        "estimated_hours": 80,
+        "complexity": "medium",
+        "dependencies": [
+          "AUTH-001"
+        ]
+      },
+      {
+        "component_id": "AUD-004",
+        "name": "Audit log service",
+        "description": "Append-only audit trail of sensitive operations with tamper-evident hashing and export for regulators.",
+        "tech_stack": [
+          "ruby_on_rails",
+          "postgresql"
+        ],
+        "estimated_hours": 48,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "DEV-005",
+        "name": "CI/CD and staging environment",
+        "description": "Dockerized build pipeline, automated tests and staging deployment on AWS ECS.",
+        "tech_stack": [
+          "docker",
+          "aws",
+          "github_actions"
+        ],
+        "estimated_hours": 40,
+        "complexity": "low",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2024-014",
+    "client_metadata": {
+      "name": "FintechCorp",
+      "sector": "finance",
+      "country": "ES"
+    },
+    "project_summary": "Personal finance management app with bank aggregation and budgeting insights",
+    "main_technology": "fastapi",
+    "year": 2024,
+    "total_estimated_hours": 470,
+    "components": [
+      {
+        "component_id": "AGG-001",
+        "name": "Bank account aggregation connector",
+        "description": "Integration with an aggregation provider to link external bank accounts, periodic sync jobs and webhook handling for consent expiry.",
+        "tech_stack": [
+          "fastapi",
+          "celery",
+          "postgresql"
+        ],
+        "estimated_hours": 110,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "CAT-002",
+        "name": "Transaction categorization engine",
+        "description": "Rule-based plus ML classifier that assigns categories to transactions and learns from user corrections.",
+        "tech_stack": [
+          "python",
+          "scikit_learn",
+          "postgresql"
+        ],
+        "estimated_hours": 90,
+        "complexity": "high",
+        "dependencies": [
+          "AGG-001"
+        ]
+      },
+      {
+        "component_id": "AUTH-003",
+        "name": "User login with biometric support",
+        "description": "Email/password login with MFA via TOTP and device-bound biometric unlock on the mobile client using secure refresh tokens.",
+        "tech_stack": [
+          "fastapi",
+          "react_native"
+        ],
+        "estimated_hours": 70,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "MOB-004",
+        "name": "React Native mobile app",
+        "description": "Cross-platform mobile client with dashboards, budgets and push notifications.",
+        "tech_stack": [
+          "react_native",
+          "typescript"
+        ],
+        "estimated_hours": 200,
+        "complexity": "high",
+        "dependencies": [
+          "AUTH-003"
+        ]
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2024-021",
+    "client_metadata": {
+      "name": "CrediRápido",
+      "sector": "finance",
+      "country": "MX"
+    },
+    "project_summary": "Online micro-loan origination platform with credit scoring",
+    "main_technology": "django",
+    "year": 2024,
+    "total_estimated_hours": 406,
+    "components": [
+      {
+        "component_id": "KYC-001",
+        "name": "KYC identity verification",
+        "description": "Onboarding flow with document upload, selfie liveness check through a third-party provider and manual review queue.",
+        "tech_stack": [
+          "django",
+          "postgresql",
+          "aws_s3"
+        ],
+        "estimated_hours": 96,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "SCR-002",
+        "name": "Credit scoring service",
+        "description": "Scoring microservice combining bureau data and internal behavioral variables, with explainable decision reasons.",
+        "tech_stack": [
+          "python",
+          "fastapi",
+          "postgresql"
+        ],
+        "estimated_hours": 130,
+        "complexity": "high",
+        "dependencies": [
+          "KYC-001"
+        ]
+      },
+      {
+        "component_id": "PAY-003",
+        "name": "Disbursement and repayment payments",
+        "description": "Integration with local SPEI payments for disbursements and card/OXXO references for repayments, with reconciliation jobs.",
+        "tech_stack": [
+          "django",
+          "celery",
+          "postgresql"
+        ],
+        "estimated_hours": 110,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "BO-004",
+        "name": "Back-office for loan officers",
+        "description": "Internal admin panel to review applications, override decisions and manage collections.",
+        "tech_stack": [
+          "django",
+          "htmx"
+        ],
+        "estimated_hours": 70,
+        "complexity": "medium",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2025-002",
+    "client_metadata": {
+      "name": "InsurNow",
+      "sector": "finance",
+      "country": "CO"
+    },
+    "project_summary": "Digital insurance quoting and policy management portal",
+    "main_technology": "nextjs",
+    "year": 2025,
+    "total_estimated_hours": 420,
+    "components": [
+      {
+        "component_id": "QUO-001",
+        "name": "Insurance quote engine",
+        "description": "Configurable pricing engine for car and home insurance with rating tables editable by actuaries.",
+        "tech_stack": [
+          "node",
+          "postgresql"
+        ],
+        "estimated_hours": 120,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "POL-002",
+        "name": "Policy lifecycle management",
+        "description": "Issue, renew, endorse and cancel policies with PDF document generation and e-signature.",
+        "tech_stack": [
+          "node",
+          "postgresql"
+        ],
+        "estimated_hours": 100,
+        "complexity": "medium",
+        "dependencies": [
+          "QUO-001"
+        ]
+      },
+      {
+        "component_id": "SSO-003",
+        "name": "Single sign-on for brokers",
+        "description": "SAML and OpenID Connect single sign-on for broker agencies with role-based access control.",
+        "tech_stack": [
+          "node",
+          "keycloak"
+        ],
+        "estimated_hours": 60,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "WEB-004",
+        "name": "Customer web portal",
+        "description": "Next.js portal for customers to get quotes, pay and download policies.",
+        "tech_stack": [
+          "nextjs",
+          "typescript"
+        ],
+        "estimated_hours": 140,
+        "complexity": "medium",
+        "dependencies": [
+          "QUO-001"
+        ]
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2023-008",
+    "client_metadata": {
+      "name": "ModaVerde",
+      "sector": "ecommerce",
+      "country": "ES"
+    },
+    "project_summary": "Fashion e-commerce storefront with headless CMS",
+    "main_technology": "nextjs",
+    "year": 2023,
+    "total_estimated_hours": 295,
+    "components": [
+      {
+        "component_id": "CAT-001",
+        "name": "Product catalog with faceted search",
+        "description": "Catalog service with variants, faceted filtering by size, color and price, and full-text search.",
+        "tech_stack": [
+          "nextjs",
+          "elasticsearch"
+        ],
+        "estimated_hours": 110,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "CHK-002",
+        "name": "Checkout and Stripe payments",
+        "description": "Cart, checkout flow, Stripe payment intents with 3D Secure and refund handling.",
+        "tech_stack": [
+          "nextjs",
+          "stripe",
+          "postgresql"
+        ],
+        "estimated_hours": 90,
+        "complexity": "high",
+        "dependencies": [
+          "CAT-001"
+        ]
+      },
+      {
+        "component_id": "CMS-003",
+        "name": "Headless CMS integration",
+        "description": "Editorial pages and lookbooks managed in a headless CMS with preview mode.",
+        "tech_stack": [
+          "nextjs",
+          "contentful"
+        ],
+        "estimated_hours": 50,
+        "complexity": "low",
+        "dependencies": []
+      },
+      {
+        "component_id": "AUTH-004",
+        "name": "Customer accounts and social login",
+        "description": "Customer registration, login with Google and Apple, password reset and order history.",
+        "tech_stack": [
+          "nextjs",
+          "nextauth",
+          "postgresql"
+        ],
+        "estimated_hours": 45,
+        "complexity": "medium",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2024-005",
+    "client_metadata": {
+      "name": "MercadoLocal",
+      "sector": "ecommerce",
+      "country": "MX"
+    },
+    "project_summary": "Multi-vendor marketplace for local producers",
+    "main_technology": "django",
+    "year": 2024,
+    "total_estimated_hours": 340,
+    "components": [
+      {
+        "component_id": "VEN-001",
+        "name": "Vendor onboarding and storefronts",
+        "description": "Vendor registration, KYC-lite checks and customizable storefront pages per seller.",
+        "tech_stack": [
+          "django",
+          "postgresql"
+        ],
+        "estimated_hours": 90,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "ORD-002",
+        "name": "Order splitting and fulfillment",
+        "description": "Split multi-vendor carts into sub-orders, track fulfillment status and notify each vendor.",
+        "tech_stack": [
+          "django",
+          "celery",
+          "postgresql"
+        ],
+        "estimated_hours": 100,
+        "complexity": "high",
+        "dependencies": [
+          "VEN-001"
+        ]
+      },
+      {
+        "component_id": "PAY-003",
+        "name": "Marketplace payouts",
+        "description": "Split payments with platform commission and scheduled payouts to vendors through a payments provider.",
+        "tech_stack": [
+          "django",
+          "stripe"
+        ],
+        "estimated_hours": 110,
+        "complexity": "high",
+        "dependencies": [
+          "ORD-002"
+        ]
+      },
+      {
+        "component_id": "REV-004",
+        "name": "Ratings and reviews",
+        "description": "Product and vendor ratings with moderation queue and spam detection.",
+        "tech_stack": [
+          "django",
+          "postgresql"
+        ],
+        "estimated_hours": 40,
+        "complexity": "low",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2024-017",
+    "client_metadata": {
+      "name": "TechShop",
+      "sector": "ecommerce",
+      "country": "ES"
+    },
+    "project_summary": "B2B electronics ordering portal integrated with ERP",
+    "main_technology": "vue",
+    "year": 2024,
+    "total_estimated_hours": 410,
+    "components": [
+      {
+        "component_id": "ERP-001",
+        "name": "ERP synchronization",
+        "description": "Bidirectional sync of products, stock and orders with SAP Business One through scheduled jobs and a message queue.",
+        "tech_stack": [
+          "python",
+          "rabbitmq",
+          "sap"
+        ],
+        "estimated_hours": 150,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "PRC-002",
+        "name": "Customer-specific pricing",
+        "description": "Price lists per customer group, volume discounts and quote requests for large orders.",
+        "tech_stack": [
+          "node",
+          "postgresql"
+        ],
+        "estimated_hours": 80,
+        "complexity": "medium",
+        "dependencies": [
+          "ERP-001"
+        ]
+      },
+      {
+        "component_id": "FE-003",
+        "name": "Vue ordering front-end",
+        "description": "Fast reorder, CSV bulk upload of order lines and invoice download.",
+        "tech_stack": [
+          "vue",
+          "typescript"
+        ],
+        "estimated_hours": 120,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "AUTH-004",
+        "name": "B2B user management with roles",
+        "description": "Company accounts with buyer and approver roles, approval workflows and JWT authentication.",
+        "tech_stack": [
+          "node",
+          "postgresql"
+        ],
+        "estimated_hours": 60,
+        "complexity": "medium",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2025-011",
+    "client_metadata": {
+      "name": "BoxSub",
+      "sector": "ecommerce",
+      "country": "AR"
+    },
+    "project_summary": "Subscription box service with recurring billing",
+    "main_technology": "ruby_on_rails",
+    "year": 2025,
+    "total_estimated_hours": 215,
+    "components": [
+      {
+        "component_id": "SUB-001",
+        "name": "Recurring subscription billing",
+        "description": "Plans, trials, proration and dunning for failed payments using a billing provider.",
+        "tech_stack": [
+          "ruby_on_rails",
+          "stripe",
+          "postgresql"
+        ],
+        "estimated_hours": 100,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "PER-002",
+        "name": "Box personalization quiz",
+        "description": "Onboarding quiz that stores preferences and drives product selection for each box.",
+        "tech_stack": [
+          "ruby_on_rails",
+          "react"
+        ],
+        "estimated_hours": 60,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "LOG-003",
+        "name": "Shipping labels and tracking",
+        "description": "Integration with carriers for label generation and tracking notifications.",
+        "tech_stack": [
+          "ruby_on_rails",
+          "sidekiq"
+        ],
+        "estimated_hours": 55,
+        "complexity": "medium",
+        "dependencies": [
+          "SUB-001"
+        ]
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2023-012",
+    "client_metadata": {
+      "name": "ClinicaSalud",
+      "sector": "healthcare",
+      "country": "ES"
+    },
+    "project_summary": "Patient portal and appointment booking for a clinic network",
+    "main_technology": "django",
+    "year": 2023,
+    "total_estimated_hours": 370,
+    "components": [
+      {
+        "component_id": "APP-001",
+        "name": "Appointment scheduling engine",
+        "description": "Availability management across doctors and sites, booking, rescheduling and reminders by SMS.",
+        "tech_stack": [
+          "django",
+          "postgresql",
+          "twilio"
+        ],
+        "estimated_hours": 120,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "EHR-002",
+        "name": "EHR integration via HL7 FHIR",
+        "description": "Read patient demographics and appointments from the existing EHR through FHIR R4 APIs.",
+        "tech_stack": [
+          "python",
+          "fhir"
+        ],
+        "estimated_hours": 140,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "AUTH-003",
+        "name": "Patient authentication with 2FA",
+        "description": "Patient login with national ID, SMS one-time passwords and consent management for data access.",
+        "tech_stack": [
+          "django",
+          "twilio"
+        ],
+        "estimated_hours": 60,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "GDPR-004",
+        "name": "GDPR consent and data access requests",
+        "description": "Consent records, data export and deletion requests with audit log.",
+        "tech_stack": [
+          "django",
+          "postgresql"
+        ],
+        "estimated_hours": 50,
+        "complexity": "medium",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2024-009",
+    "client_metadata": {
+      "name": "TeleMed",
+      "sector": "healthcare",
+      "country": "MX"
+    },
+    "project_summary": "Telemedicine platform with video consultations",
+    "main_technology": "node",
+    "year": 2024,
+    "total_estimated_hours": 460,
+    "components": [
+      {
+        "component_id": "VID-001",
+        "name": "Video consultation module",
+        "description": "WebRTC video calls between doctor and patient with waiting room and recording consent.",
+        "tech_stack": [
+          "node",
+          "webrtc",
+          "twilio"
+        ],
+        "estimated_hours": 150,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "PRE-002",
+        "name": "Electronic prescriptions",
+        "description": "Digital prescriptions signed by doctors with QR validation for pharmacies.",
+        "tech_stack": [
+          "node",
+          "postgresql"
+        ],
+        "estimated_hours": 80,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "PAY-003",
+        "name": "Consultation payments",
+        "description": "Pay-per-consultation and insurance copay with card payments.",
+        "tech_stack": [
+          "node",
+          "stripe"
+        ],
+        "estimated_hours": 50,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "MOB-004",
+        "name": "Patient mobile app",
+        "description": "Flutter app for booking, video consultations and prescription history.",
+        "tech_stack": [
+          "flutter",
+          "dart"
+        ],
+        "estimated_hours": 180,
+        "complexity": "high",
+        "dependencies": [
+          "VID-001"
+        ]
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2025-006",
+    "client_metadata": {
+      "name": "LabTrack",
+      "sector": "healthcare",
+      "country": "CL"
+    },
+    "project_summary": "Laboratory results management system",
+    "main_technology": "fastapi",
+    "year": 2025,
+    "total_estimated_hours": 280,
+    "components": [
+      {
+        "component_id": "LIS-001",
+        "name": "LIS instrument integration",
+        "description": "Ingest results from laboratory instruments via HL7 v2 messages and normalize them.",
+        "tech_stack": [
+          "python",
+          "hl7"
+        ],
+        "estimated_hours": 130,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "RES-002",
+        "name": "Results portal for patients",
+        "description": "Secure portal to view and download lab results with reference ranges and doctor comments.",
+        "tech_stack": [
+          "fastapi",
+          "react"
+        ],
+        "estimated_hours": 90,
+        "complexity": "medium",
+        "dependencies": [
+          "LIS-001"
+        ]
+      },
+      {
+        "component_id": "SEC-003",
+        "name": "Role-based access and audit",
+        "description": "Fine-grained role-based access control for lab staff with full access auditing.",
+        "tech_stack": [
+          "fastapi",
+          "postgresql"
+        ],
+        "estimated_hours": 60,
+        "complexity": "medium",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2025-015",
+    "client_metadata": {
+      "name": "CareHome",
+      "sector": "healthcare",
+      "country": "ES"
+    },
+    "project_summary": "Care management app for elderly residences",
+    "main_technology": "flutter",
+    "year": 2025,
+    "total_estimated_hours": 260,
+    "components": [
+      {
+        "component_id": "CAR-001",
+        "name": "Care plans and daily logs",
+        "description": "Care plans per resident, medication schedules and daily activity logging by caregivers on tablets.",
+        "tech_stack": [
+          "flutter",
+          "firebase"
+        ],
+        "estimated_hours": 120,
+        "complexity": "medium",
+        "dependencies": []
+      },
+      {
+        "component_id": "ALR-002",
+        "name": "Alerts and family notifications",
+        "description": "Incident alerts to staff and weekly updates to families via push and email.",
+        "tech_stack": [
+          "firebase",
+          "node"
+        ],
+        "estimated_hours": 50,
+        "complexity": "low",
+        "dependencies": [
+          "CAR-001"
+        ]
+      },
+      {
+        "component_id": "OFF-003",
+        "name": "Offline-first synchronization",
+        "description": "Local storage with conflict resolution so caregivers can work without connectivity.",
+        "tech_stack": [
+          "flutter",
+          "sqlite"
+        ],
+        "estimated_hours": 90,
+        "complexity": "high",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2023-019",
+    "client_metadata": {
+      "name": "MetalWorks",
+      "sector": "industrial",
+      "country": "DE"
+    },
+    "project_summary": "Predictive maintenance for CNC machines",
+    "main_technology": "python",
+    "year": 2023,
+    "total_estimated_hours": 360,
+    "components": [
+      {
+        "component_id": "IOT-001",
+        "name": "IoT telemetry ingestion",
+        "description": "Collect vibration and temperature sensor data via MQTT, buffer it and store it in a time-series database.",
+        "tech_stack": [
+          "python",
+          "mqtt",
+          "timescaledb"
+        ],
+        "estimated_hours": 130,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "PDM-002",
+        "name": "Anomaly detection models",
+        "description": "Train and serve anomaly detection models that predict failures and estimate remaining useful life.",
+        "tech_stack": [
+          "python",
+          "scikit_learn"
+        ],
+        "estimated_hours": 160,
+        "complexity": "high",
+        "dependencies": [
+          "IOT-001"
+        ]
+      },
+      {
+        "component_id": "DSH-003",
+        "name": "Maintenance dashboard",
+        "description": "Grafana dashboards and a work-order view for maintenance teams.",
+        "tech_stack": [
+          "grafana",
+          "react"
+        ],
+        "estimated_hours": 70,
+        "complexity": "medium",
+        "dependencies": [
+          "PDM-002"
+        ]
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2024-023",
+    "client_metadata": {
+      "name": "LogiPlant",
+      "sector": "industrial",
+      "country": "MX"
+    },
+    "project_summary": "Warehouse management system for a manufacturing plant",
+    "main_technology": "java",
+    "year": 2024,
+    "total_estimated_hours": 420,
+    "components": [
+      {
+        "component_id": "INV-001",
+        "name": "Inventory and location management",
+        "description": "Real-time stock per bin and location, cycle counts and barcode scanning from handheld devices.",
+        "tech_stack": [
+          "java",
+          "spring",
+          "postgresql"
+        ],
+        "estimated_hours": 150,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "PICK-002",
+        "name": "Picking and packing workflows",
+        "description": "Wave picking, pick-to-order routes and packing station screens.",
+        "tech_stack": [
+          "java",
+          "spring"
+        ],
+        "estimated_hours": 110,
+        "complexity": "medium",
+        "dependencies": [
+          "INV-001"
+        ]
+      },
+      {
+        "component_id": "ERP-003",
+        "name": "ERP integration with SAP",
+        "description": "Integrate goods receipts and deliveries with SAP S/4HANA via IDocs.",
+        "tech_stack": [
+          "java",
+          "sap"
+        ],
+        "estimated_hours": 120,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "AUTH-004",
+        "name": "Operator login with badge and roles",
+        "description": "Shift-based operator authentication with RFID badges and role-based permissions.",
+        "tech_stack": [
+          "java",
+          "spring"
+        ],
+        "estimated_hours": 40,
+        "complexity": "low",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "budget_id": "BUD-2025-020",
+    "client_metadata": {
+      "name": "EnergyGrid",
+      "sector": "industrial",
+      "country": "ES"
+    },
+    "project_summary": "Energy consumption monitoring for industrial sites",
+    "main_technology": "go",
+    "year": 2025,
+    "total_estimated_hours": 260,
+    "components": [
+      {
+        "component_id": "MET-001",
+        "name": "Smart meter data collection",
+        "description": "Collect readings from Modbus smart meters through edge gateways and push them to the cloud.",
+        "tech_stack": [
+          "golang",
+          "modbus",
+          "kubernetes"
+        ],
+        "estimated_hours": 120,
+        "complexity": "high",
+        "dependencies": []
+      },
+      {
+        "component_id": "ANA-002",
+        "name": "Consumption analytics and reports",
+        "description": "Aggregations per site and line, cost allocation and monthly PDF reports.",
+        "tech_stack": [
+          "golang",
+          "postgresql"
+        ],
+        "estimated_hours": 90,
+        "complexity": "medium",
+        "dependencies": [
+          "MET-001"
+        ]
+      },
+      {
+        "component_id": "API-003",
+        "name": "Public REST API for clients",
+        "description": "Documented REST API with API keys and rate limiting for clients to pull their data.",
+        "tech_stack": [
+          "golang",
+          "redis"
+        ],
+        "estimated_hours": 50,
+        "complexity": "medium",
+        "dependencies": []
+      }
+    ]
+  }
+]

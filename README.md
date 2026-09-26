@@ -190,6 +190,40 @@ GET /api/v1/sessions/{id} → estado actual de la sesión
 
 **Decisión técnica:** text-embedding-3-small, 1536d, $0.02/1M tokens
 
+### ✅ Sesión 08 — Base de datos vectorial con pgvector
+**Qué construimos:** Persistencia de embeddings en PostgreSQL con pgvector y búsqueda semántica.
+
+**Archivos clave:**
+- `app/db.py` — conexión SQLAlchemy + inicialización de pgvector, tabla y índices
+- `app/embedding_pipeline/router.py` — actualizado para persistir chunks en PostgreSQL
+- `app/embedding_pipeline/retrieval.py` — búsqueda semántica con operador `<=>` de pgvector
+- `app/main.py` — inicializa la BD en startup
+
+**Nuevos endpoints:**
+POST /embeddings/ingest → chunking + embeddings + persistencia en PostgreSQL
+POST /embeddings/search → búsqueda semántica top-k con filtros de metadata
+
+
+**Infraestructura:**
+- PostgreSQL 16 con pgvector en Docker (`pgvector/pgvector:pg16`)
+- Índice HNSW (m=16, ef_construction=64) para búsqueda aproximada rápida
+- Índices de metadata en sector, tecnología, año y complejidad
+
+**Resultado del test de búsqueda:**
+Query: "OAuth authentication for mobile banking app"
+| Chunk | Similitud | Sector | Tech | Horas |
+|-------|-----------|--------|------|-------|
+| BUD-2024-014::AUTH-003 | 0.5918 | finance | fastapi | 70 |
+| BUD-2023-003::AUTH-001 | 0.5564 | finance | ruby_on_rails | 120 |
+| BUD-2023-003::PSD2-002 | 0.5108 | finance | ruby_on_rails | 160 |
+
+**Lo que aprendimos:**
+- pgvector añade el operador `<=>` (distancia coseno) a PostgreSQL
+- Índice HNSW: búsqueda aproximada, mucho más rápida que fuerza bruta a partir de ~10k vectores
+- `ON CONFLICT DO UPDATE` permite reingestión sin duplicados
+- Los filtros de metadata combinados con búsqueda vectorial permiten RAG con contexto
+- La similitud coseno entre 0.5 y 0.6 indica relevancia real en este corpus
+
 ## Estructura del proyecto
 
 estimador-cag/

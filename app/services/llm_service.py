@@ -67,19 +67,26 @@ def call_llm(request: EstimationRequest, version: str = "v1") -> dict:
 
     except Exception as e:
         latency_ms = round((time.time() - start) * 1000, 2)
-        call_logger.error("llm_call_failed", error_type=type(e).__name__, error_msg=str(e), latency_ms=latency_ms)
+        call_logger.error(
+            "llm_call_failed",
+            error_type=type(e).__name__,
+            error_msg=str(e),
+            latency_ms=latency_ms,
+        )
         raise
 
 
-def call_llm_conversational(request: EstimationRequest, session, attachments_block: str = "", version: str = "v1") -> dict:
-    """
-    Llamada conversacional con historial y project_metadata.
-    Usa ventana deslizante — no cachea porque cada turno es único.
-    """
-    from app.prompts.loader import render_estimation_prompt
+def call_llm_conversational(
+    request: EstimationRequest,
+    session,
+    attachments_block: str = "",
+    version: str = "v1"
+) -> dict:
+    """Llamada conversacional con historial y project_metadata."""
     system_prompt, user_prompt = render_estimation_prompt(request, version)
+    model = f"{settings.LLM_PROVIDER}/{settings.MODEL_NAME}"
 
-    # Enriquecer system prompt con project_metadata
+    # ── Enriquecer system prompt con project_metadata ─────────────────────────
     metadata = session.project_metadata
     metadata_lines = []
     if metadata.project_name:
@@ -99,36 +106,14 @@ def call_llm_conversational(request: EstimationRequest, session, attachments_blo
         metadata_block = "\n<project_metadata>\n" + "\n".join(metadata_lines) + "\n</project_metadata>\n"
         system_prompt = system_prompt + metadata_block
 
-    # Añadir adjuntos al user prompt
+    # ── Añadir adjuntos al user prompt ────────────────────────────────────────
     if attachments_block:
         user_prompt = f"{user_prompt}\n\n<attachments>\n{attachments_block}\n</attachments>"
 
-
-        # ── Evento turn_observed agregado ─────────────────────────────────────
-        logger.info(
-            "turn_observed",
-            turn_index=session.history.turn_count + 1,
-            session_id=session.session_id,
-            enriched_transcript_chars=len(user_prompt),
-            attachments_total_chars=len(attachments_block) if attachments_block else 0,
-            messages_in_window=len(messages),
-            tokens_in=response.usage.prompt_tokens,
-            tokens_out=response.usage.completion_tokens,
-            cost_usd=round(
-                (response.usage.prompt_tokens * 0.00000015) +
-                (response.usage.completion_tokens * 0.0000006), 6
-            ),
-            latency_ms=latency_ms,
-            cache_hit_kind="none",
-            model=response.model,
-            provider=settings.LLM_PROVIDER,
-        )
-
-    # Construir messages con historial
+    # ── Construir messages con historial ──────────────────────────────────────
     messages = session.history.to_messages(system_prompt)
     messages.append({"role": "user", "content": user_prompt})
 
-    model = f"{settings.LLM_PROVIDER}/{settings.MODEL_NAME}"
     call_logger = logger.bind(
         model=model,
         session_id=session.session_id,
@@ -146,11 +131,32 @@ def call_llm_conversational(request: EstimationRequest, session, attachments_blo
         latency_ms = round((time.time() - start) * 1000, 2)
         estimation_text = response.choices[0].message.content
 
+        tokens_in  = response.usage.prompt_tokens
+        tokens_out = response.usage.completion_tokens
+        cost_usd   = round((tokens_in * 0.00000015) + (tokens_out * 0.0000006), 6)
+
+        # ── Evento turn_observed (fuera de cualquier if, siempre se emite) ────
+        call_logger.info(
+            "turn_observed",
+            turn_index=session.history.turn_count + 1,
+            session_id=session.session_id,
+            enriched_transcript_chars=len(user_prompt),
+            attachments_total_chars=len(attachments_block) if attachments_block else 0,
+            messages_in_window=len(messages),
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            cost_usd=cost_usd,
+            latency_ms=latency_ms,
+            cache_hit_kind="none",
+            model=response.model,
+            provider=settings.LLM_PROVIDER,
+        )
+
         call_logger.info(
             "llm_conversational_completed",
             latency_ms=latency_ms,
-            tokens_in=response.usage.prompt_tokens,
-            tokens_out=response.usage.completion_tokens,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
             turns_in_history=session.history.turn_count,
         )
 
@@ -164,13 +170,18 @@ def call_llm_conversational(request: EstimationRequest, session, attachments_blo
             "cache_hit":      False,
             "validation":     {"score": 1.0, "issues": []},
             "usage": {
-                "prompt_tokens":     response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
+                "prompt_tokens":     tokens_in,
+                "completion_tokens": tokens_out,
                 "total_tokens":      response.usage.total_tokens,
             }
         }
 
     except Exception as e:
         latency_ms = round((time.time() - start) * 1000, 2)
-        call_logger.error("llm_conversational_failed", error_type=type(e).__name__, error_msg=str(e), latency_ms=latency_ms)
+        call_logger.error(
+            "llm_conversational_failed",
+            error_type=type(e).__name__,
+            error_msg=str(e),
+            latency_ms=latency_ms,
+        )
         raise

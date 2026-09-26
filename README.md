@@ -139,6 +139,59 @@ GET /api/v1/sessions/{id} → estado actual de la sesión
 
 ---
 
+### ✅ Sesión 06 — Stress test del CAG
+**Qué construimos:** Medición cuantitativa de dónde rompe el CAG.
+
+**Archivos clave:**
+- `streamlit_app.py` — Conversión EUR/USD/MXN en tiempo real (frankfurter.app, caché 1h, fallback fijo)
+- `app/services/llm_service.py` — Evento `turn_observed` (13 campos por turno)
+- `evals/stress/` — Escenarios (growing, pivot, contradiction), PDFs sintéticos, métricas (latencia, coste, memory drift), runner y `REPORT.md`
+
+**Hallazgos:** P50 8,658ms (SLA 4,000ms ❌) · coste ~$0.0004-0.001/turno ✅ · memory drift 62.5% ⚠️ (degrada en turno 6) → justifica RAG.
+
+---
+
+### 🚧 Sesión 07 — Embeddings + chunking estructural (pre-ejercicio)
+**Qué construimos:** Pipeline mínimo presupuestos JSON → chunks → vectores (`text-embedding-3-small`, 1536d). Los vectores se devuelven por HTTP; la persistencia (pgvector) llega en la Sesión 08.
+
+**Archivos clave:**
+- `app/embedding_pipeline/schemas.py` — `Budget`, `BudgetComponent`, `Chunk`, `EmbeddedChunk`, `IngestRequest/Response`
+- `app/embedding_pipeline/chunker.py` — `JSONStructuralChunker`: 1 componente = 1 chunk, con header contextual del presupuesto padre y metadata filtrable
+- `app/embedding_pipeline/embedder.py` — `OpenAIEmbedder`: batches de 100, reintento exponencial (1s, 2s, 4s) ante `RateLimitError`, log por batch y coste estimado
+- `app/embedding_pipeline/router.py` — `POST /embeddings/ingest`
+- `scripts/compare.py` — Similitud coseno entre dos textos (solo biblioteca estándar)
+- `app/embedding_pipeline/SANITY_CHECK.md` — Resultado de las 3 parejas de validación
+- `data/budgets_sample.json` — 15 presupuestos (finance, ecommerce, healthcare, industrial), 56 componentes
+- `data/ingest_request_sample.json` — Los mismos presupuestos envueltos en `{"budgets": [...]}` listos para el endpoint
+
+**Cómo usarlo:**
+```powershell
+uv sync                                   # instala tiktoken
+uv run uvicorn app.main:app --reload
+
+# Ingesta (o desde Swagger: http://localhost:8000/docs → POST /embeddings/ingest)
+curl.exe -X POST http://localhost:8000/embeddings/ingest `
+  -H "Content-Type: application/json" `
+  --data "@data/ingest_request_sample.json"
+
+# Comparar dos textos (fuera de contenedor, con .env en la raíz)
+uv run python scripts/compare.py --text-a "OAuth 2.0 authentication backend for fintech" --text-b "JWT-based authorization service for banking app"
+
+# Ejecutar las 3 parejas oficiales y generar SANITY_CHECK.md
+uv run python scripts/compare.py --sanity-check
+
+# Dentro de contenedor (si se dockeriza el servicio en el futuro)
+docker compose exec servicio_ia python scripts/compare.py --text-a "..." --text-b "..."
+```
+
+**Decisiones:**
+- Contexto del padre en el texto embebido (*contextual chunk headers*); sector/año/horas también en `metadata` para filtros SQL en S08
+- Sin overlap ni fixed-size: los chunks > 512 tokens solo se avisan en logs (`large_chunk_detected`)
+- Sin numpy: coseno a mano; el precio del modelo es una constante etiquetada en `embedder.py`
+- El proyecto no dockeriza el servicio IA (Docker solo corre Redis), así que la ejecución de referencia es con `uv`
+
+---
+
 ## Estructura del proyecto
 
 estimador-cag/
@@ -156,6 +209,7 @@ estimador-cag/
 │ │ ├── llm_service.py # Llamadas al LLM
 │ │ ├── cache_service.py # Caché Redis
 │ │ └── attachment_service.py # Extracción de adjuntos
+│ ├── embedding_pipeline/ # S07: chunker, embedder, router, schemas
 │ ├── config.py # Variables de entorno
 │ ├── main.py # FastAPI app
 │ └── sessions.py # Gestión de sesiones
@@ -163,6 +217,10 @@ estimador-cag/
 │ ├── prompts/
 │ │ └── test_estimation_v1.py
 │ └── test_sessions.py
+├── data/ # budgets_sample.json (S07)
+├── evals/stress/ # Stress test del CAG (S06)
+├── scripts/
+│ └── compare.py # Similitud coseno (S07)
 ├── streamlit_app.py # Interfaz web
 ├── main.py # Arranque uvicorn
 └── .env # API keys (no en git)

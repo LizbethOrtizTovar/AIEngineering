@@ -1,6 +1,7 @@
 # app/main.py
 from fastapi import FastAPI
 from app.routers.estimations import router as estimations_router
+from app.embedding_pipeline.router import router as embeddings_router
 
 app = FastAPI(
     title="Estimador CAG",
@@ -15,3 +16,6 @@ async def health():
 
 # Registrar el router bajo el prefijo /api/v1
 app.include_router(estimations_router, prefix="/api/v1")
+
+# Sesión 07 — pipeline de embeddings: POST /embeddings/ingest
+app.include_router(embeddings_router, prefix="/embeddings")

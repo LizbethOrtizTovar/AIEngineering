@@ -251,3 +251,44 @@ estimador-cag/
 ├── streamlit_app.py # Interfaz web
 ├── main.py # Arranque uvicorn
 └── .env # API keys (no en git)
+
+### ✅ Sesión 09 — Pipeline RAG completo
+**Qué construimos:** Las dos capas que faltaban para convertir los vectores en respuestas útiles: retrieval y generación con grounding.
+
+**Archivos clave:**
+- `app/rag/query_reformulator.py` — extrae campos estructurados de la transcripción (search_query, sector, tecnología, complejidad)
+- `app/rag/retriever.py` — recupera chunks con umbral de calidad (0.45), filtros de metadata y soft-fail
+- `app/rag/context_assembler.py` — ordena y formatea chunks para el LLM con metadatos de citación
+- `app/rag/generator.py` — generación con grounding explícito, política de contexto insuficiente y citación obligatoria
+- `app/routers/rag.py` — endpoint `POST /api/v1/rag/estimate` que orquesta todo el pipeline
+
+**Nuevo endpoint:**
+POST /api/v1/rag/estimate → pipeline RAG completo con fuentes citadas
+
+**Flujo completo:**
+Transcripción
+↓
+Query Reformulator (LLM call #1)
+↓
+Retriever (pgvector <=> búsqueda coseno + filtros)
+↓
+Context Assembler (ordenar + formatear chunks)
+↓
+Generator (LLM call #2 con grounding)
+↓
+RAGResponse con fuentes citadas
+
+
+**Resultado del test:**
+- Query: "API de autenticación OAuth 2.0 para app móvil de banca"
+- Chunks recuperados: 3 (sector finance, similitud promedio 0.4997)
+- Estimación generada: 320 horas / 16,000 €
+- Referencias citadas: BUD-2023-003::AUTH-001, BUD-2024-014::AUTH-003, BUD-2023-003::DEV-005
+- Latencia total: 6,613ms (2 llamadas LLM + búsqueda vectorial)
+
+**Lo que aprendimos:**
+- Query reformulation mejora el retrieval — embeber la transcripción completa es peor que una query corta y precisa
+- Umbral de similitud (0.45) filtra chunks irrelevantes — soft-fail explícito cuando no hay contexto suficiente
+- Grounding obligatorio — el LLM solo usa el contexto histórico, no conocimiento general
+- Citación de fuentes — cada estimación es trazable a presupuestos reales
+- Retry sin filtros — si los filtros son muy restrictivos, reintenta sin ellos

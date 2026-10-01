@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from app.routers.estimations import router as estimations_router
 from app.embedding_pipeline.router import router as embeddings_router
+from app.routers.rag import router as rag_router  # ← añadir aquí
 from app.db import init_db
 import structlog
 
@@ -29,3 +30,4 @@ async def health():
 # Registrar routers
 app.include_router(estimations_router, prefix="/api/v1")
 app.include_router(embeddings_router, prefix="/embeddings", tags=["embeddings"])
+app.include_router(rag_router, prefix="/api/v1/rag")  # ← añadir aquí
